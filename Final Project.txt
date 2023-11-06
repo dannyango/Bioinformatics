@@ -1,0 +1,282 @@
+# E.coli genome
+# E_coli_K12_MG1655.fasta
+# https://www.ncbi.nlm.nih.gov/nuccore/U00096
+
+cd /blue/mcb4934/share/danny.ngo/FinalProject
+cd /blue/mcb4934/danny.ngo/FinalProject
+
+# download files
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578517/SRR22578517 # tetracyclin1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578535/SRR22578535 # tetracyclin2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578514/SRR22578514 # control1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578515/SRR22578515 # control2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578542/SRR22578542 #cef1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578541/SRR22578541 #cef2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578539/SRR22578539 #chl1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578538/SRR22578538 #chl2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578536/SRR22578536 #cip1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578534/SRR22578534 #cip2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578532/SRR22578532 #ery1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578531/SRR22578531 #ery2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578529/SRR22578529 #imi1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578528/SRR22578528 #imi2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578523/SRR22578523 #mit1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578522/SRR22578522 #mit2
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578520/SRR22578520 #pol1
+wget https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR22578519/SRR22578519 #pol2
+
+
+# get fastq files
+module load sra
+fasterq-dump --split-files SRR22578517
+fasterq-dump --split-files SRR22578535
+fasterq-dump --split-files SRR22578514
+fasterq-dump --split-files SRR22578515
+fasterq-dump --split-files SRR22578542 #cef1
+fasterq-dump --split-files SRR22578541 #cef2
+fasterq-dump --split-files SRR22578539 #chl1
+fasterq-dump --split-files SRR22578538 #chl2
+fasterq-dump --split-files SRR22578536 #cip1
+fasterq-dump --split-files SRR22578534 #cip2
+fasterq-dump --split-files SRR22578532 #ery1
+fasterq-dump --split-files SRR22578531 #ery2
+fasterq-dump --split-files SRR22578529 #imi1
+fasterq-dump --split-files SRR22578528 #imi2
+fasterq-dump --split-files SRR22578523 #mit1
+fasterq-dump --split-files SRR22578522 #mit2
+fasterq-dump --split-files SRR22578520 #pol1
+fasterq-dump --split-files SRR22578519 #pol2
+
+# rename files
+mv SRR22578517_1.fastq tetracyclin_rep1_1.fastq
+mv SRR22578517_2.fastq tetracyclin_rep1_2.fastq
+mv SRR22578535_1.fastq tetracyclin_rep2_1.fastq
+mv SRR22578535_2.fastq tetracyclin_rep2_2.fastq
+mv SRR22578514_1.fastq control_rep1_1.fastq
+mv SRR22578514_2.fastq control_rep1_2.fastq
+mv SRR22578515_1.fastq control_rep2_1.fastq
+mv SRR22578515_2.fastq control_rep2_2.fastq
+
+# read trimming
+########################## TEMPLATE ##########################
+module load trimmomatic
+module load hisat2
+module load samtools
+module load htseq
+
+trimmomatic PE -phred33 -threads 16 XXX_rep1_1.fastq XXX_rep1_2.fastq XXX_rep1_1_paired_trimmed.fq.gz XXX_rep1_1_unpaired_trimmed.fq.gz XXX_rep1_2_paired_trimmed.fq.gz XXX_rep1_2_unpaired_trimmed.fq.gz ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+trimmomatic PE -phred33 -threads 16 XXX_rep2_1.fastq XXX_rep2_2.fastq XXX_rep2_1_paired_trimmed.fq.gz XXX_rep2_1_unpaired_trimmed.fq.gz XXX_rep2_2_paired_trimmed.fq.gz XXX_rep2_2_unpaired_trimmed.fq.gz ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+rm XXX_rep1_1.fastq
+rm XXX_rep1_2.fastq
+
+hisat2 -p 16 -x E_coli -1 XXX_rep1_1_paired_trimmed.fq.gz -2 XXX_rep1_2_paired_trimmed.fq.gz -S XXX_rep1.sam
+hisat2 -p 16 -x E_coli -1 XXX_rep2_1_paired_trimmed.fq.gz -2 XXX_rep2_2_paired_trimmed.fq.gz -S XXX_rep2.sam
+rm XXX_rep1_1_paired_trimmed.fq.gz
+rm XXX_rep1_2_paired_trimmed.fq.gz
+rm XXX_rep2_1_paired_trimmed.fq.gz
+rm XXX_rep2_2_paired_trimmed.fq.gz
+
+samtools sort -@ 8 -n -o XXX_rep1_sorted.sam XXX_rep1.sam
+samtools sort -@ 8 -n -o XXX_rep2_sorted.sam XXX_rep2.sam
+rm XXX_rep1.sam
+rm XXX_rep2.sam
+
+sed 's/U00096\.3/Chromosome/' XXX_rep1_sorted.sam > XXX_rep1_sorted_sed.sam 
+sed 's/U00096\.3/Chromosome/' XXX_rep2_sorted.sam > XXX_rep2_sorted_sed.sam
+rm XXX_rep1_sorted.sam
+rm XXX_rep2_sorted.sam
+
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i Name -o XXX_rep1_counts XXX_rep1_sorted_sed.sam Escherichia_coli.gff3 > XXX_rep1_gene_summary
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i Name -o XXX_rep2_counts XXX_rep2_sorted_sed.sam Escherichia_coli.gff3 > XXX_rep2_gene_summary
+rm XXX_rep1_counts
+rm XXX_rep2_counts
+##############################################################
+
+module load trimmomatic
+trimmomatic PE -phred33 -threads 16 \
+tetracyclin_rep1_1.fastq tetracyclin_rep1_2.fastq \
+tetracyclin_rep1_1_paired_trimmed.fq.gz tetracyclin_rep1_1_unpaired_trimmed.fq.gz \
+tetracyclin_rep1_2_paired_trimmed.fq.gz tetracyclin_rep1_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+trimmomatic PE -phred33 -threads 16 \
+tetracyclin_rep2_1.fastq tetracyclin_rep2_2.fastq \
+tetracyclin_rep2_1_paired_trimmed.fq.gz tetracyclin_rep2_1_unpaired_trimmed.fq.gz \
+tetracyclin_rep2_2_paired_trimmed.fq.gz tetracyclin_rep2_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+trimmomatic PE -phred33 -threads 16 \
+control_rep1_1.fastq control_rep1_2.fastq \
+control_rep1_1_paired_trimmed.fq.gz control_rep1_1_unpaired_trimmed.fq.gz \
+control_rep1_2_paired_trimmed.fq.gz control_rep1_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+trimmomatic PE -phred33 -threads 16 \
+control_rep2_1.fastq control_rep2_2.fastq \
+control_rep2_1_paired_trimmed.fq.gz control_rep2_1_unpaired_trimmed.fq.gz \
+control_rep2_2_paired_trimmed.fq.gz control_rep2_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+# hisat2 index
+module load hisat2
+hisat2-build -f E_coli_K12_MG1655.fasta E_coli
+
+# map reads to hisat2 reference genome
+# submit as slurm
+### TEMPLATE ###
+hisat2 -p 16 -x E_coli -1 XXX_rep1_1_paired_trimmed.fq.gz -2 XXX_rep1_2_paired_trimmed.fq.gz -S XXX_rep1.sam
+hisat2 -p 16 -x E_coli -1 XXX_rep2_1_paired_trimmed.fq.gz -2 XXX_rep2_2_paired_trimmed.fq.gz -S XXX_rep2.sam
+################
+
+hisat2 -p 16 -x E_coli -1 tetracyclin_rep1_1_paired_trimmed.fq.gz -2 tetracyclin_rep1_2_paired_trimmed.fq.gz -S tetracyclin_rep1.sam
+hisat2 -p 16 -x E_coli -1 tetracyclin_rep2_1_paired_trimmed.fq.gz -2 tetracyclin_rep2_2_paired_trimmed.fq.gz -S tetracyclin_rep2.sam
+hisat2 -p 16 -x E_coli -1 control_rep1_1_paired_trimmed.fq.gz -2 control_rep1_2_paired_trimmed.fq.gz -S control_rep1.sam
+hisat2 -p 16 -x E_coli -1 control_rep2_1_paired_trimmed.fq.gz -2 control_rep2_2_paired_trimmed.fq.gz -S control_rep2.sam
+
+# convert from sam to bam
+module load samtools
+samtools view -bS tetracyclin_rep1.sam > tetracyclin_rep1.bam 
+samtools view -bS tetracyclin_rep2.sam > tetracyclin_rep2.bam 
+samtools view -bS control_rep1.sam > control_rep1.bam 
+samtools view -bS control_rep2.sam > control_rep2.bam 
+
+# sort by sequence name
+samtools sort -@ 8 -n -o tetracyclin_rep1_sorted.bam tetracyclin_rep1.bam
+samtools sort -@ 8 -n -o tetracyclin_rep2_sorted.bam tetracyclin_rep2.bam
+samtools sort -@ 8 -n -o control_rep1_sorted.bam control_rep1.bam
+samtools sort -@ 8 -n -o control_rep2_sorted.bam control_rep2.bam
+
+# gene annotation
+module load prokka
+prokka --outdir annotation --prefix mygenome E_coli_K12_MG1655.fasta
+cd annotation
+less mygenome.gff
+# never mind, get .gff3 from http://bacteria.ensembl.org/Escherichia_coli_str_k_12_substr_mg1655_gca_000005845/Info/Index
+
+# read mapping
+module load htseq
+htseq-count -f bam -m intersection-nonempty -s no -t gene -i ID -o tetracyclin_rep1_counts tetracyclin_rep1_sorted.bam Escherichia_coli.gff3 > tetracyclin_rep1_gene_summary
+htseq-count -f bam -m intersection-nonempty -s no -t gene -i ID -o tetracyclin_rep2_counts tetracyclin_rep2_sorted.bam Escherichia_coli.gff3 > tetracyclin_rep2_gene_summary
+htseq-count -f bam -m intersection-nonempty -s no -t gene -i ID -o control_rep1_counts control_rep1_sorted.bam Escherichia_coli.gff3 > control_rep1_gene_summary
+htseq-count -f bam -m intersection-nonempty -s no -t gene -i ID -o control_rep2_counts control_rep2_sorted.bam Escherichia_coli.gff3 > control_rep2_gene_summary
+# got 0 reads mapped
+
+
+
+# ======================================
+# USING BOWTIE2 for MAPPING
+# ======================================
+
+# bowtie2 index for comparative genomics
+module load bowtie2
+bowtie2-build E_coli_K12_MG1655.fasta E_coli_K12_MG1655
+
+# align reads to bowtie2
+bowtie2 -x E_coli_K12_MG1655 -1 tetracyclin_rep1_1_paired_trimmed.fq.gz -2 tetracyclin_rep1_2_paired_trimmed.fq.gz -S bt2_tetracyclin_rep1.sam
+bowtie2 -x E_coli_K12_MG1655 -1 tetracyclin_rep2_1_paired_trimmed.fq.gz -2 tetracyclin_rep2_2_paired_trimmed.fq.gz -S bt2_tetracyclin_rep2.sam
+bowtie2 -x E_coli_K12_MG1655 -1 control_rep1_1_paired_trimmed.fq.gz -2 control_rep1_2_paired_trimmed.fq.gz -S bt2_control_rep1.sam
+bowtie2 -x E_coli_K12_MG1655 -1 control_rep2_1_paired_trimmed.fq.gz -2 control_rep2_2_paired_trimmed.fq.gz -S bt2_control_rep2.sam
+
+module load samtools
+samtools sort -@ 8 -n -o bt2_tetracyclin_rep1_sorted.sam bt2_tetracyclin_rep1.sam
+samtools sort -@ 8 -n -o bt2_tetracyclin_rep2_sorted.sam bt2_tetracyclin_rep2.sam
+samtools sort -@ 8 -n -o bt2_control_rep1_sorted.sam bt2_control_rep1.sam
+samtools sort -@ 8 -n -o bt2_control_rep2_sorted.sam bt2_control_rep2.sam
+
+# match chromosome in aligned reads to gff3
+sed 's/U00096\.3/Chromosome/' bt2_tetracyclin_rep1_sorted.sam > bt2_tetracyclin_rep1_sorted_sed.sam 
+sed 's/U00096\.3/Chromosome/' bt2_tetracyclin_rep2_sorted.sam > bt2_tetracyclin_rep2_sorted_sed.sam
+sed 's/U00096\.3/Chromosome/' bt2_control_rep1_sorted.sam > bt2_control_rep1_sorted_sed.sam
+sed 's/U00096\.3/Chromosome/' bt2_control_rep2_sorted.sam > bt2_control_rep2_sorted_sed.sam
+
+module load htseq
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i Name -o tetracyclin_rep1_counts bt2_tetracyclin_rep1_sorted_sed.sam Escherichia_coli.gff3 > tetracyclin_rep1_gene_summary
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i Name -o tetracyclin_rep2_counts bt2_tetracyclin_rep2_sorted_sed.sam Escherichia_coli.gff3 > tetracyclin_rep2_gene_summary
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i Name -o control_rep1_counts bt2_control_rep1_sorted_sed.sam Escherichia_coli.gff3 > control_rep1_gene_summary
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i Name -o control_rep2_counts bt2_control_rep2_sorted_sed.sam Escherichia_coli.gff3 > control_rep2_gene_summary
+
+
+cd /blue/mcb4934/share/danny.ngo/FinalProject
+module load bowtie2
+bowtie2 -x E_coli_K12_MG1655 -1 tetracyclin_rep2_1_paired_trimmed.fq.gz -2 tetracyclin_rep2_2_paired_trimmed.fq.gz -S bt2_tetracyclin_rep2.sam
+module load samtools
+samtools sort -@ 8 -n -o bt2_tetracyclin_rep2_sorted.sam bt2_tetracyclin_rep2.sam
+sed 's/U00096\.3/Chromosome/' bt2_tetracyclin_rep2_sorted.sam > bt2_tetracyclin_rep2_sorted_sed.sam
+module load htseq
+htseq-count -f sam -m intersection-nonempty -s no -t gene -i ID -o tetracyclin_rep1_counts bt2_tetracyclin_rep2_sorted_sed.sam Escherichia_coli.gff3 > tetracyclin_rep2_gene_summary
+
+
+
+
+# =====================================================================================================================
+# select smaller subset of reads
+module load seqtk
+seqtk sample -s100 SRR22578517_1.fastq 1000000 > tetracyclin_rep1_1.fq
+seqtk sample -s100 SRR22578517_2.fastq 1000000 > tetracyclin_rep1_2.fq
+seqtk sample -s100 SRR22578535_1.fastq 1000000 > tetracyclin_rep2_1.fq
+seqtk sample -s100 SRR22578535_2.fastq 1000000 > tetracyclin_rep2_2.fq
+
+seqtk sample -s100 SRR22578514_1.fastq 1000000 > control_rep1_1.fq
+seqtk sample -s100 SRR22578514_2.fastq 1000000 > control_rep1_2.fq
+seqtk sample -s100 SRR22578515_1.fastq 1000000 > control_rep2_1.fq
+seqtk sample -s100 SRR22578515_2.fastq 1000000 > control_rep2_2.fq
+
+module load fastqc
+fastqc tetracyclin_rep1_1.fq
+fastqc tetracyclin_rep1_2.fq
+fastqc tetracyclin_rep2_1.fq
+fastqc tetracyclin_rep2_2.fq
+fastqc control_rep1_1.fq
+fastqc control_rep1_2.fq
+fastqc control_rep2_1.fq
+fastqc control_rep2_2.fq
+
+# build index
+module load bwa
+bwa index E_coli_K12_MG1655.fasta
+
+# align paired end reads to index
+bwa mem -t 16 E_coli_K12_MG1655.fasta tetracyclin_rep1_1.fq tetracyclin_rep1_2.fq > tetracyclin_rep1_mapping.sam
+bwa mem -t 16 E_coli_K12_MG1655.fasta tetracyclin_rep2_1.fq tetracyclin_rep2_2.fq > tetracyclin_rep2_mapping.sam
+bwa mem -t 16 E_coli_K12_MG1655.fasta control_rep1_1.fq control_rep1_2.fq > control_rep1_mapping.sam
+bwa mem -t 16 E_coli_K12_MG1655.fasta control_rep2_1.fq control_rep2_2.fq > control_rep2_mapping.sam
+
+# bowtie2 index for comparative genomics
+module load bowtie2
+bowtie2-build E_coli_K12_MG1655.fasta E_coli_K12_MG1655
+
+# read trimming
+module load trimmomatic
+trimmomatic PE -phred33 -threads 16 \
+control_rep1_1.fq control_rep1_2.fq \
+control_rep1_1_paired_trimmed.fq.gz control_rep1_1_unpaired_trimmed.fq.gz \
+control_rep1_2_paired_trimmed.fq.gz control_rep1_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+trimmomatic PE -phred33 -threads 16 \
+control_rep2_1.fq control_rep2_2.fq \
+control_rep2_1_paired_trimmed.fq.gz control_rep2_1_unpaired_trimmed.fq.gz \
+control_rep2_2_paired_trimmed.fq.gz control_rep2_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+trimmomatic PE -phred33 -threads 16 \
+tetracyclin_rep1_1.fq tetracyclin_rep1_2.fq \
+tetracyclin_rep1_1_paired_trimmed.fq.gz tetracyclin_rep1_1_unpaired_trimmed.fq.gz \
+tetracyclin_rep1_2_paired_trimmed.fq.gz tetracyclin_rep1_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+
+trimmomatic PE -phred33 -threads 16 \
+tetracyclin_rep2_1.fq tetracyclin_rep2_2.fq \
+tetracyclin_rep2_1_paired_trimmed.fq.gz tetracyclin_rep2_1_unpaired_trimmed.fq.gz \
+tetracyclin_rep2_2_paired_trimmed.fq.gz tetracyclin_rep2_2_unpaired_trimmed.fq.gz \
+ILLUMINACLIP:${HPC_TRIMMOMATIC_ADAPTER}/TruSeq3-PE.fa:2:30:10 \
+LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:75
+# =====================================================================================================================
+
