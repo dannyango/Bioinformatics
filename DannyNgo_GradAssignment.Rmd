@@ -1,0 +1,215 @@
+---
+title: "DannyNgo_Grad_Assignment"
+author: "Danny Ngo"
+date: "2022-12-05"
+output: html_document
+---
+
+# Introduction
+Dataset of total RNA in lung tissue was obtained through quantitative PCR from a paper testing SARS-CoV-2 breakthrough infections in K18-hACE2 transgenic mice. Waning vaccine protection was evaluated by challenging non-boosted mice (Mock) and mice boosted with human COVID-19 mRNA post-vaccination sera (Post-vac) with Delta, Kappa, and NY (614G) variants of SARS-CoV-2. Differential gene expression was assessed through volcano plots allowing quick visualization of genes with significant fold change.
+
+Citation:
+
+Kwon, H. J., Kosikova, M., Tang, W., Ortega-Rodriguez, U., Radvak, P., Xiang, R., Mercer, K. E., Muskhelishvili, L., Davis, K., Ward, J. M., Kosik, I., Holly, J., Kang, I., Yewdell, J. W., Plant, E. P., Chen, W. H., Shriver, M. C., Barnes, R. S., Pasetti, M. F., Zhou, B., … Xie, H. (2022). Enhanced virulence and waning vaccine-elicited antibodies account for breakthrough infections caused by SARS-CoV-2 delta and beyond. iScience, 25(12), 105507. https://doi.org/10.1016/j.isci.2022.105507
+
+Dataset: GSE193839 https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE193839
+
+***
+
+### Import Libraries
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+```
+
+### Import Dataset
+```{r}
+data <- read.delim("E:/School UF/2022 Fall - MCB6937 - R for Life Sciences/Grad Assignment/GSE193839_non-normalized_data.txt", header=FALSE)
+head(data)
+```
+
+### Format Dataset
+```{r}
+df <- na_if(data[3:92,1:40], "No Ct") # Replace "No Ct" values with "NA"
+colnames(df) <- df[1,1:40] # set column headers to first row
+df = df[-1,-1] # remove row and column header in data frame
+df <- data.frame(apply(df, 2, function(x) as.numeric(as.character(x)))) # convert data class to Numeric
+rownames(df) <- data[4:92,1] # set row headers
+```
+
+### Set up t-test Function to Calculate Difference Between Control Group and Test Group
+```{r}
+t_test_function <- function(df, control, test_group) {
+  x = df[control]
+  y = df[test_group]
+  results = t.test(x, y)
+  results$p.value # output vector p.value
+}
+```
+
+### Apply t-test and Calculate Fold Change for Test Group 1 (NY_Mock)
+```{r}
+p_value = apply(df, 1, t_test_function, control = c(1:3), test_group = c(4:9))
+log2_df = log2(df)
+control = apply(log2_df[,1:3], 1, mean, na.rm=TRUE)
+test = apply(log2_df[,4:9], 1, mean, na.rm=TRUE)
+LogFC <- control - test
+new_data <- data.frame(ID = data[4:92,1], LogFC, p_value)
+new_data <- new_data %>%
+  mutate(Expression = dplyr::case_when(LogFC >= 0 & p_value <= 0.05 ~ "Up-regulated",
+                                       LogFC <= 0 & p_value <= 0.05 ~ "Down-regulated",
+                                       TRUE ~ "Unchanged"))
+top_id <- new_data %>% # add gene names
+  filter(Expression == "Up-regulated" | Expression == "Down-regulated")
+```
+
+### Create Volcano Plot for Test Group 1 (NY_Mock)
+```{r}
+theme_set(theme_bw())
+
+p1 <- ggplot(new_data, aes(x = LogFC, y = -log(p_value, 10))) +
+  geom_point(aes(color = Expression)) +
+  ggtitle("Gene Expression in NY_Mock") +
+  theme(plot.title = element_text(size = 24, hjust = 0.5)) +
+  xlab(expression("log"[2]*"FC")) +
+  ylab(expression("-log"[10]*"FDR")) +
+  scale_color_manual(values = c("green", "grey50", "firebrick3")) +
+  geom_label_repel(data = top_id, label = top_id$ID, size = 2, label.size = NA, fill = NA, max.overlaps = Inf)
+p1
+```
+
+### Apply t-test and Calculate Fold Change for Test Group 2 (Kappa_Mock)
+```{r}
+p_value = apply(df, 1, t_test_function, control = c(1:3), test_group = c(10:15))
+test = apply(log2_df[,10:15], 1, mean, na.rm=TRUE)
+LogFC <- control - test
+new_data <- data.frame(ID = data[4:92,1], LogFC, p_value)
+new_data <- new_data %>%
+  mutate(Expression = dplyr::case_when(LogFC >= 0 & p_value <= 0.05 ~ "Up-regulated",
+                                       LogFC <= 0 & p_value <= 0.05 ~ "Down-regulated",
+                                       TRUE ~ "Unchanged"))
+top_id <- new_data %>%
+  filter(Expression == "Up-regulated" | Expression == "Down-regulated")
+```
+
+### Create Volcano Plot for Test Group 2 (Kappa_Mock)
+```{r}
+p2 <- ggplot(new_data, aes(x = LogFC, y = -log(p_value, 10))) +
+  geom_point(aes(color = Expression)) +
+  ggtitle("Gene Expression in Kappa_Mock") +
+  theme(plot.title = element_text(size = 24, hjust = 0.5)) +
+  xlab(expression("log"[2]*"FC")) +
+  ylab(expression("-log"[10]*"FDR")) +
+  scale_color_manual(values = c("green", "grey50", "firebrick3")) +
+  geom_label_repel(data = top_id, label = top_id$ID, size = 2, label.size = NA, fill = NA, max.overlaps = Inf)
+p2
+```
+
+### Apply t-test and Calculate Fold Change for Test Group 3 (Delta_Mock)
+```{r}
+p_value = apply(df, 1, t_test_function, control = c(1:3), test_group = c(16:21))
+test = apply(log2_df[,16:21], 1, mean, na.rm=TRUE)
+LogFC <- control - test
+new_data <- data.frame(ID = data[4:92,1], LogFC, p_value)
+new_data <- new_data %>%
+  mutate(Expression = dplyr::case_when(LogFC >= 0 & p_value <= 0.05 ~ "Up-regulated",
+                                       LogFC <= 0 & p_value <= 0.05 ~ "Down-regulated",
+                                       TRUE ~ "Unchanged"))
+top_id <- new_data %>%
+  filter(Expression == "Up-regulated" | Expression == "Down-regulated")
+```
+
+### Create Volcano Plot for Test Group 3 (Delta_Mock)
+```{r}
+p3 <- ggplot(new_data, aes(x = LogFC, y = -log(p_value, 10))) +
+  geom_point(aes(color = Expression)) +
+  ggtitle("Gene Expression in Delta_Mock") +
+  theme(plot.title = element_text(size = 24, hjust = 0.5)) +
+  xlab(expression("log"[2]*"FC")) +
+  ylab(expression("-log"[10]*"FDR")) +
+  scale_color_manual(values = c("green", "grey50", "firebrick3")) +
+  geom_label_repel(data = top_id, label = top_id$ID, size = 2, label.size = NA, fill = NA, max.overlaps = Inf)
+p3
+```
+
+### Apply t-test and Calculate Fold Change for Test Group 4 (NY_Post-vac)
+```{r}
+p_value = apply(df, 1, t_test_function, control = c(1:3), test_group = c(22:27))
+test = apply(log2_df[,22:27], 1, mean, na.rm=TRUE)
+LogFC <- control - test
+new_data <- data.frame(ID = data[4:92,1], LogFC, p_value)
+new_data <- new_data %>%
+  mutate(Expression = dplyr::case_when(LogFC >= 0 & p_value <= 0.05 ~ "Up-regulated",
+                                       LogFC <= 0 & p_value <= 0.05 ~ "Down-regulated",
+                                       TRUE ~ "Unchanged"))
+top_id <- new_data %>%
+  filter(Expression == "Up-regulated" | Expression == "Down-regulated")
+```
+
+### Create Volcano Plot for Test Group 4 (NY_Post-vac)
+```{r}
+p4 <- ggplot(new_data, aes(x = LogFC, y = -log(p_value, 10))) +
+  geom_point(aes(color = Expression)) +
+  ggtitle("Gene Expression in NY_Post-vac") +
+  theme(plot.title = element_text(size = 24, hjust = 0.5)) +
+  xlab(expression("log"[2]*"FC")) +
+  ylab(expression("-log"[10]*"FDR")) +
+  scale_color_manual(values = c("green", "grey50", "firebrick3")) +
+  geom_label_repel(data = top_id, label = top_id$ID, size = 2, label.size = NA, fill = NA, max.overlaps = Inf)
+p4
+```
+
+### Apply t-test and Calculate Fold Change for Test Group 5 (Kappa_Post-vac)
+```{r}
+p_value = apply(df, 1, t_test_function, control = c(1:3), test_group = c(28:33))
+test = apply(log2_df[,28:33], 1, mean, na.rm=TRUE)
+LogFC <- control - test
+new_data <- data.frame(ID = data[4:92,1], LogFC, p_value)
+new_data <- new_data %>%
+  mutate(Expression = dplyr::case_when(LogFC >= 0 & p_value <= 0.05 ~ "Up-regulated",
+                                       LogFC <= 0 & p_value <= 0.05 ~ "Down-regulated",
+                                       TRUE ~ "Unchanged"))
+top_id <- new_data %>%
+  filter(Expression == "Up-regulated" | Expression == "Down-regulated")
+```
+
+### Create Volcano Plot for Test Group 5 (Kappa_Post-vac)
+```{r}
+p5 <- ggplot(new_data, aes(x = LogFC, y = -log(p_value, 10))) +
+  geom_point(aes(color = Expression)) +
+  ggtitle("Gene Expression in Kappa_Post-vac") +
+  theme(plot.title = element_text(size = 24, hjust = 0.5)) +
+  xlab(expression("log"[2]*"FC")) +
+  ylab(expression("-log"[10]*"FDR")) +
+  scale_color_manual(values = c("green", "grey50", "firebrick3")) +
+  geom_label_repel(data = top_id, label = top_id$ID, size = 2, label.size = NA, fill = NA, max.overlaps = Inf)
+p5
+```
+
+### Apply t-test and Calculate Fold Change for Test Group 6 (Delta_Post-vac)
+```{r}
+p_value = apply(df, 1, t_test_function, control = c(1:3), test_group = c(34:39))
+test = apply(log2_df[,34:39], 1, mean, na.rm=TRUE)
+LogFC <- control - test
+new_data <- data.frame(ID = data[4:92,1], LogFC, p_value)
+new_data <- new_data %>%
+  mutate(Expression = dplyr::case_when(LogFC >= 0 & p_value <= 0.05 ~ "Up-regulated",
+                                       LogFC <= 0 & p_value <= 0.05 ~ "Down-regulated",
+                                       TRUE ~ "Unchanged"))
+top_id <- new_data %>%
+  filter(Expression == "Up-regulated" | Expression == "Down-regulated")
+```
+
+### Create Volcano Plot for Test Group 6 (Delta_Post-vac)
+```{r}
+p6 <- ggplot(new_data, aes(x = LogFC, y = -log(p_value, 10))) +
+  geom_point(aes(color = Expression)) +
+  ggtitle("Gene Expression in Delta_Post-vac") +
+  theme(plot.title = element_text(size = 24, hjust = 0.5)) +
+  xlab(expression("log"[2]*"FC")) +
+  ylab(expression("-log"[10]*"FDR")) +
+  scale_color_manual(values = c("grey50", "firebrick3")) +
+  geom_label_repel(data = top_id, label = top_id$ID, size = 2, label.size = NA, fill = NA, max.overlaps = Inf)
+p6
+```

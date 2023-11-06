@@ -1,0 +1,82 @@
+---
+title: "DannyNgo_Assignment_4"
+author: "Danny Ngo"
+date: "2022-11-11"
+output: html_document
+---
+
+### Import Libraries
+```{r}
+library(vegan)
+library(ggplot2)
+```
+
+### Generate Community Matrix for Species vs Communities
+```{r}
+set.seed(2)
+community1 = matrix(sample(0:250,300,replace=T),nrow=10,dimnames=list(paste("community",1:10,sep=""),paste("sp",1:30,sep="")))
+community2 = matrix(sample(50:200,300,replace=T),nrow=10,dimnames=list(paste("community",11:20,sep=""),paste("sp",1:30,sep="")))
+community_matrix <- rbind(community1,community2)
+```
+
+### Generate Metadata depicting the treatments
+```{r}
+m1 <- as.data.frame(list(paste("community",1:10,sep=""), paste("T1")))
+colnames(m1) <- c("Communities", "Treatment")
+m2 <- as.data.frame(list(paste("community",11:20,sep=""), paste("T2")))
+colnames(m2) <- c("Communities", "Treatment")
+metadata <- rbind(m1,m2)
+```
+
+### 1. Calculate the Shannon diversity index for all samples using the vegan package.
+```{r}
+raremax <- min(rowSums(community_matrix))
+rarefied_data <- rrarefy(community_matrix, raremax)
+shannon <- vegan::diversity(rarefied_data, index = "shannon")
+diversity_tbl <- cbind(metadata, shannon)
+diversity_tbl
+```
+
+### 2. Using the Shannon diversity measurements obtained in Step 1, make a graph with a boxplot for each treatment - customize the plot as you wish.
+```{r}
+plot <- ggplot(diversity_tbl, aes(x=Treatment, y=shannon)) +
+  geom_boxplot(outlier.shape=4) +
+  theme(axis.text.x = element_text(hjust = 1)) +
+  labs(y="Shannon diversity index") +
+  geom_jitter(aes(color=shannon)) +
+  theme(legend.position = "none")
+plot
+```
+
+### 3. Using the Shannon diversity measurements obtained in Step 1, compare the treatments using a t-test. There is no need to verify data normality.
+```{r}
+t_test <- t.test(shannon ~ Treatment, diversity_tbl)
+t_test
+```
+
+### 4. Make an NMDS using the metaMDS function from the vegan package. Use the “bray” distance. Plot the NMDS using ggplot2 with a different color for each treatment. There is no need to add the arrows in the ordination. Plot a graph with the communities only. See the video on Week 9 as an example. 
+```{r}
+ordination <- metaMDS(community_matrix, "bray")
+ef <- envfit(ordination, community_matrix, nperm = 999)
+ef.adj <- ef 
+pvals.adj <- p.adjust(ef$vectors$pvals, method = "fdr") 
+ef.adj$vectors$pvals <- pvals.adj 
+ef.adj
+
+site <- as.data.frame(scores(ordination, display = "sites")) 
+site <- cbind(site,Treatment=metadata$Treatment)
+
+nmds <- ggplot(site, aes(x = NMDS1, y = NMDS2)) + 
+  geom_point(aes(NMDS1, NMDS2, color = factor(site$Treatment), 
+                 shape = factor(site$Treatment)), size = 6) + 
+  labs(colour = "Treatment", shape = "Treatment") 
+nmds
+```
+
+### 5. Run a PERMANOVA analysis to verify the difference between treatments.
+```{r}
+clr <- decostand(community_matrix, method = "rclr")
+dist <- vegdist(clr, method = "euclidean")
+permanova = adonis2(dist ~ Treatment, data = site, permuations = 999)
+permanova
+```

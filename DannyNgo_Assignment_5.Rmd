@@ -1,0 +1,55 @@
+---
+title: "DannyNgo_Assignment_5"
+author: "Danny Ngo"
+date: "2022-11-25"
+output: html_document
+---
+
+### Import Libraries
+```{r}
+library(readxl)
+library(tidyverse)
+```
+
+### Import Dataset
+```{r}
+data <- read_excel("E:/School UF/2022 Fall - MCB6937 - R for Life Sciences/Assignments/Assignment5.xlsx")
+```
+
+### Calculate Mean and Standard Deviation
+```{r}
+data2 <- data %>%
+  rowwise() %>% 
+  mutate(Microbe1 = mean(c(Microbe_1_r1, Microbe_1_r2, Microbe_1_r3))) %>%
+  mutate(M1sd = sd(c(Microbe_1_r1, Microbe_1_r2, Microbe_1_r3))) %>%
+  mutate(Microbe2 = mean(c(Microbe_2_r1, Microbe_2_r2, Microbe_2_r3))) %>%
+  mutate(M2sd = sd(c(Microbe_2_r1, Microbe_2_r2, Microbe_2_r3))) %>% 
+  mutate(Microbe3 = mean(c(Microbe_3_r1, Microbe_3_r2, Microbe_3_r3))) %>%
+  mutate(M3sd = sd(c(Microbe_3_r1, Microbe_3_r2, Microbe_3_r3)))
+```
+
+### Convert Data to Long Format
+```{r}
+data_long <- data2[, c(1, 11, 13, 15)]
+data_long <- data_long %>% 
+  gather("Microbe", "Cells", -Time_hours)
+M1sd <- as.data.frame(data2[, 12])
+M2sd <- as.data.frame(data2[, 14])
+M3sd <- as.data.frame(data2[, 16])
+colnames(M1sd) <- "sd"
+colnames(M2sd) <- "sd"
+colnames(M3sd) <- "sd"
+sd <- rbind(M1sd, M2sd, M3sd)
+data_long <- cbind(data_long, sd)
+```
+
+### Create Line Plot with Standard Error Bars
+```{r}
+theme_set(theme_bw())
+ggplot(data_long, aes(x = Time_hours, y = Cells, color = Microbe)) +
+  geom_errorbar(aes(ymin = Cells-sd, ymax = Cells+sd), width = 0.1) +
+  geom_line() +
+  geom_point() +
+  labs(y = "log No. of cells") +
+  labs(x = "Time (h)")
+```
